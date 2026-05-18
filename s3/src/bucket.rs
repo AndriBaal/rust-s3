@@ -1144,9 +1144,12 @@ impl Bucket {
     /// ```
     #[maybe_async::maybe_async]
     pub async fn get_bucket_policy(&self) -> Result<String, S3Error> {
+        log::debug!("Getting bucket policy for bucket '{}'", self.name);
         let request = RequestImpl::new(self, "", Command::GetBucketPolicy).await?;
         let response = request.response_data(false).await?;
-        Ok(response.as_str()?.to_string())
+        let policy = response.as_str()?.to_string();
+        log::debug!("Got bucket policy for '{}': {}", self.name, policy);
+        Ok(policy)
     }
 
     /// Sets the bucket policy from a JSON string.
@@ -1184,11 +1187,18 @@ impl Bucket {
     /// ```
     #[maybe_async::maybe_async]
     pub async fn put_bucket_policy(&self, policy: &str) -> Result<ResponseData, S3Error> {
+        log::debug!("Putting bucket policy for bucket '{}': {}", self.name, policy);
         let command = Command::PutBucketPolicy {
             policy: policy.to_string(),
         };
         let request = RequestImpl::new(self, "", command).await?;
-        request.response_data(false).await
+        let response = request.response_data(false).await?;
+        log::debug!(
+            "Put bucket policy for '{}' returned status {}",
+            self.name,
+            response.status_code()
+        );
+        Ok(response)
     }
 
     /// Deletes the bucket policy.
@@ -1224,8 +1234,15 @@ impl Bucket {
     /// ```
     #[maybe_async::maybe_async]
     pub async fn delete_bucket_policy(&self) -> Result<ResponseData, S3Error> {
+        log::debug!("Deleting bucket policy for bucket '{}'", self.name);
         let request = RequestImpl::new(self, "", Command::DeleteBucketPolicy).await?;
-        request.response_data(false).await
+        let response = request.response_data(false).await?;
+        log::debug!(
+            "Deleted bucket policy for '{}', status {}",
+            self.name,
+            response.status_code()
+        );
+        Ok(response)
     }
 
     /// Gets torrent from an S3 path.

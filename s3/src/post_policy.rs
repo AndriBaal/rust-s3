@@ -116,6 +116,7 @@ impl<'a> PostPolicy<'a> {
         bucket.credentials_refresh().await?;
         let now = now_utc();
 
+        log::debug!("Signing post policy for bucket '{}'", bucket.name);
         let policy = self.build(&now, &bucket).await?;
         let policy_string = policy.policy_string()?;
 
@@ -153,6 +154,13 @@ impl<'a> PostPolicy<'a> {
         fields.insert("x-amz-signature".to_string(), signature);
         fields.insert("Policy".to_string(), policy_string);
         let url = bucket.url();
+        log::debug!(
+            "Signed post policy for '{}': url={}, fields={:?}, dynamic_fields={:?}",
+            bucket.name,
+            url,
+            fields,
+            dynamic_fields
+        );
         Ok(PresignedPost {
             url,
             fields,
@@ -172,6 +180,8 @@ impl<'a> PostPolicy<'a> {
         {
             Err(PostPolicyError::MismatchedCondition)?
         }
+        let field_name: std::borrow::Cow<str> = field.clone().into();
+        log::debug!("Adding post policy condition: field={field_name:?}, value={value:?}");
         self.conditions.0.push(PostPolicyCondition { field, value });
         Ok(self)
     }
